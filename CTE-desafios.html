@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CTE — Common Table Expressions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EEF2F1;
+    --panel: #FFFFFF;
+    --panel-2: #E4E9E8;
+    --text: #1B2430;
+    --muted: #5B6673;
+    --accent: #0E8A82;
+    --accent2: #B4790A;
+    --success: #1B8A5A;
+    --success-bg: #E3F5EC;
+    --error: #C23B3B;
+    --error-bg: #FBEAEA;
+    --border: #D5DBDA;
+    --code-kw: #0E6B65;
+    --code-str: #8A5A0E;
+    --font-sans: 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F1620; --panel: #16202C; --panel-2: #1D2836;
+      --text: #E4E9F0; --muted: #8B98AC;
+      --accent: #4FD1C5; --accent2: #E8A33D;
+      --success: #4ADE80; --success-bg: #14301F;
+      --error: #F87171; --error-bg: #331919;
+      --border: #26313F; --code-kw: #6EE7DE; --code-str: #F0C674;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1620; --panel: #16202C; --panel-2: #1D2836;
+    --text: #E4E9F0; --muted: #8B98AC;
+    --accent: #4FD1C5; --accent2: #E8A33D;
+    --success: #4ADE80; --success-bg: #14301F;
+    --error: #F87171; --error-bg: #331919;
+    --border: #26313F; --code-kw: #6EE7DE; --code-str: #F0C674;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; }
+  header.hero { margin-bottom: 48px; }
+  .kicker { color: var(--accent); font-family: var(--font-mono); font-size: 14px; margin: 0 0 10px; }
+  h1 { font-size: 38px; line-height: 1.15; margin: 0 0 12px; font-weight: 800; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 17px; line-height: 1.6; max-width: 58ch; margin: 0 0 28px; }
+  pre.code {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 22px; font-family: var(--font-mono); font-size: 14.5px; line-height: 1.7;
+    overflow-x: auto; margin: 0; color: var(--text);
+  }
+  .kw { color: var(--code-kw); font-weight: 700; }
+  .str { color: var(--code-str); }
+  section { margin-bottom: 44px; }
+  h2 { font-size: 22px; font-weight: 800; margin: 0 0 14px; letter-spacing: -0.01em; }
+  p { line-height: 1.7; margin: 0 0 14px; max-width: 68ch; }
+  ul.points { margin: 0 0 4px; padding-left: 20px; line-height: 1.7; }
+  ul.points li { margin-bottom: 6px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 44px 0; }
+
+  .exercise {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; margin-bottom: 20px;
+  }
+  .ex-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+  .ex-num {
+    font-family: var(--font-mono); color: var(--accent); font-weight: 700; font-size: 15px;
+  }
+  .ex-prompt { font-size: 16px; line-height: 1.6; margin: 0 0 4px; white-space: pre-wrap; }
+  .ex-context {
+    background: var(--panel-2); border-radius: 8px; padding: 12px 14px; font-family: var(--font-mono);
+    font-size: 13.5px; line-height: 1.6; margin: 10px 0; white-space: pre-wrap; color: var(--text);
+  }
+  .ex-hint { color: var(--muted); font-size: 13px; margin: 6px 0 14px; }
+  textarea, input[type="text"] {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; color: var(--text); font-family: var(--font-mono); font-size: 14px;
+    resize: vertical; margin-bottom: 12px;
+  }
+  textarea:focus, input:focus, button:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+  .ex-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  button {
+    font-family: var(--font-sans); font-weight: 700; font-size: 14px; padding: 10px 18px;
+    border-radius: 8px; cursor: pointer; border: 1px solid transparent;
+  }
+  .btn-check { background: var(--accent); color: var(--bg); }
+  .btn-check:hover { opacity: 0.9; }
+  .btn-reveal { background: transparent; color: var(--text); border-color: var(--border); }
+  .btn-reveal:hover { border-color: var(--accent); }
+  .feedback {
+    margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 1.6;
+    display: none;
+  }
+  .feedback.show { display: block; }
+  .feedback.correct { background: var(--success-bg); color: var(--success); }
+  .feedback.incorrect { background: var(--error-bg); color: var(--error); }
+  .answer-box {
+    margin-top: 12px; padding: 12px 14px; border-radius: 8px; background: var(--panel-2);
+    font-family: var(--font-mono); font-size: 13.5px; line-height: 1.6; white-space: pre-wrap;
+    display: none;
+  }
+  .answer-box.show { display: block; }
+  footer { color: var(--muted); font-size: 13px; text-align: center; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="kicker">WITH … AS ( … )</p>
+    <h1>Common Table Expressions</h1>
+    <p class="sub">Como nomear um bloco de consulta SQL para reaproveitar dentro de uma query maior — sem empilhar subconsultas ilegíveis.</p>
+    <pre class="code"><span class="kw">WITH</span> vendas_2026 <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> loja, consultor, valor
+  <span class="kw">FROM</span> vendas
+  <span class="kw">WHERE</span> ano = 2026
+)
+<span class="kw">SELECT</span> loja, <span class="kw">SUM</span>(valor) <span class="kw">AS</span> total
+<span class="kw">FROM</span> vendas_2026
+<span class="kw">GROUP BY</span> loja;</pre>
+  </header>
+
+  <section>
+    <h2>O que é</h2>
+    <p>Uma CTE dá um nome temporário a um resultado de consulta, válido só dentro da instrução que a define. É como declarar uma variável — só que a "variável" é uma tabela.</p>
+    <ul class="points">
+      <li>Existe apenas durante a execução daquela consulta — não fica salva no banco, como uma tabela ou view ficariam.</li>
+      <li>Pode ser referenciada mais de uma vez na consulta principal.</li>
+      <li>Deixa consultas com várias etapas legíveis de cima para baixo, em vez de subconsultas aninhadas umas dentro das outras.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>CTE recursiva</h2>
+    <p>Uma CTE pode referenciar a si mesma — útil para percorrer dados hierárquicos, como uma árvore de cargos (funcionário → gestor → gestor do gestor...).</p>
+    <pre class="code"><span class="kw">WITH RECURSIVE</span> hierarquia <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> id, nome, gestor_id <span class="kw">FROM</span> funcionarios <span class="kw">WHERE</span> gestor_id <span class="kw">IS NULL</span>
+  <span class="kw">UNION ALL</span>
+  <span class="kw">SELECT</span> f.id, f.nome, f.gestor_id
+  <span class="kw">FROM</span> funcionarios f
+  <span class="kw">JOIN</span> hierarquia h <span class="kw">ON</span> f.gestor_id = h.id
+)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> hierarquia;</pre>
+  </section>
+
+  <hr class="divider">
+
+  <section>
+    <h2>Exercícios</h2>
+    <p>Responda, confira, e use "Ver resposta" quando quiser conferir mesmo sem responder.</p>
+
+    <div id="exercises"></div>
+  </section>
+
+  <footer>13 exercícios · do básico ao avançado · validação automática por palavras-chave nas questões abertas</footer>
+</div>
+
+<script>
+const norm = s => (s || '')
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase().trim().replace(/\s+/g, ' ').replace(/[;.,]+$/, '');
+
+const exercises = [
+  {
+    prompt: 'Qual palavra-chave do SQL inicia a definição de uma CTE?',
+    mode: 'exact',
+    accept: ['with'],
+    answer: 'WITH'
+  },
+  {
+    prompt: 'Uma CTE fica salva permanentemente no banco de dados, como uma tabela ou view? Responda sim ou não.',
+    mode: 'exact',
+    accept: ['nao', 'n'],
+    answer: 'Não — ela existe só durante a execução da consulta em que foi definida.'
+  },
+  {
+    prompt: 'Como se chama o tipo de CTE que referencia a si mesma, usada para percorrer dados hierárquicos (como uma árvore de cargos)?',
+    mode: 'keywords',
+    keywords: ['recursiv'],
+    answer: 'CTE recursiva (WITH RECURSIVE)'
+  },
+  {
+    prompt: 'Complete a palavra que falta:',
+    context: '____ vendas_2026 AS (\n  SELECT * FROM vendas WHERE ano = 2026\n)\nSELECT * FROM vendas_2026;',
+    mode: 'exact',
+    accept: ['with'],
+    answer: 'WITH'
+  },
+  {
+    prompt: 'Escreva uma CTE chamada "clientes_ativos" que seleciona os clientes da tabela "clientes" onde a coluna "ativo" é igual a 1, e depois use essa CTE para contar quantos clientes ativos existem.',
+    mode: 'keywords',
+    keywords: ['with', 'clientes_ativos', 'as', 'select', 'clientes', 'ativo', 'count'],
+    hint: 'A validação checa se os elementos essenciais estão presentes (não a sintaxe exata).',
+    answer: 'WITH clientes_ativos AS (\n  SELECT *\n  FROM clientes\n  WHERE ativo = 1\n)\nSELECT COUNT(*) FROM clientes_ativos;'
+  },
+  {
+    prompt: 'Crie uma CTE chamada "vendas_mes" para filtrar as vendas de janeiro de 2026 e depois calcule o faturamento total por loja.',
+    mode: 'keywords',
+    keywords: ['with', 'vendas_mes', 'as', 'select', 'vendas', '2026', 'sum', 'loja', 'group by'],
+    hint: 'Use a CTE para fazer o filtro primeiro e a consulta principal para agregar por loja.',
+    answer: 'WITH vendas_mes AS (\n  SELECT *\n  FROM vendas\n  WHERE data_venda >= DATE \'2026-01-01\'\n    AND data_venda < DATE \'2026-02-01\'\n)\nSELECT loja, SUM(valor) AS faturamento\nFROM vendas_mes\nGROUP BY loja;'
+  },
+  {
+    prompt: 'Crie duas CTEs: uma com o faturamento por loja e outra com a meta por loja. Depois faça um JOIN entre elas para calcular o percentual atingido.',
+    mode: 'keywords',
+    keywords: ['with', 'faturamento_loja', 'meta_loja', 'as', 'sum', 'join', 'meta', 'faturamento', '100'],
+    hint: 'O objetivo é encadear CTEs e depois relacioná-las na consulta final.',
+    answer: 'WITH faturamento_loja AS (\n  SELECT loja, SUM(valor) AS faturamento\n  FROM vendas\n  GROUP BY loja\n),\nmeta_loja AS (\n  SELECT loja, SUM(meta) AS meta\n  FROM metas\n  GROUP BY loja\n)\nSELECT f.loja, f.faturamento, m.meta,\n       100.0 * f.faturamento / NULLIF(m.meta, 0) AS perc_ating\nFROM faturamento_loja f\nJOIN meta_loja m ON m.loja = f.loja;'
+  },
+  {
+    prompt: 'Use uma CTE para calcular o ticket médio por loja e, na consulta principal, mostre somente as lojas cujo ticket médio seja maior que 500.',
+    mode: 'keywords',
+    keywords: ['with', 'ticket_medio', 'as', 'avg', 'loja', 'having'],
+    hint: 'Você pode filtrar o resultado agregado na própria CTE ou na consulta externa.',
+    answer: 'WITH ticket_medio AS (\n  SELECT loja, AVG(valor) AS ticket_medio\n  FROM vendas\n  GROUP BY loja\n)\nSELECT *\nFROM ticket_medio\nWHERE ticket_medio > 500;'
+  },
+  {
+    prompt: 'Crie uma CTE que conte as vendas por consultor. Depois, use ROW_NUMBER() para numerar os consultores do maior para o menor número de vendas.',
+    mode: 'keywords',
+    keywords: ['with', 'vendas_consultor', 'count', 'row_number', 'over', 'order by', 'desc'],
+    hint: 'Esse exercício combina CTE com função de janela.',
+    answer: 'WITH vendas_consultor AS (\n  SELECT consultor, COUNT(*) AS qtd_vendas\n  FROM vendas\n  GROUP BY consultor\n)\nSELECT consultor, qtd_vendas,\n       ROW_NUMBER() OVER (ORDER BY qtd_vendas DESC) AS ranking\nFROM vendas_consultor;'
+  },
+  {
+    prompt: 'Você precisa descobrir a loja com maior faturamento em cada região. Crie uma CTE com o faturamento por região e loja e depois use RANK() para criar o ranking dentro de cada região.',
+    mode: 'keywords',
+    keywords: ['with', 'faturamento_regiao', 'sum', 'region', 'rank', 'partition by', 'order by', 'desc'],
+    hint: 'Use PARTITION BY para reiniciar o ranking em cada região.',
+    answer: 'WITH faturamento_regiao AS (\n  SELECT regiao, loja, SUM(valor) AS faturamento\n  FROM vendas\n  GROUP BY regiao, loja\n)\nSELECT regiao, loja, faturamento,\n       RANK() OVER (PARTITION BY regiao ORDER BY faturamento DESC) AS ranking\nFROM faturamento_regiao;'
+  },
+  {
+    prompt: 'Crie uma sequência de duas CTEs para identificar lojas que atingiram pelo menos 100% da meta e, em seguida, contar quantas lojas atingiram a meta por região.',
+    mode: 'keywords',
+    keywords: ['with', 'lojas_atingiram', 'as', 'join', 'case', 'group by', 'regiao', 'count'],
+    hint: 'A ideia é separar a preparação dos dados da agregação final.',
+    answer: 'WITH lojas_atingiram AS (\n  SELECT v.loja, v.regiao,\n         SUM(v.valor) AS faturamento,\n         m.meta,\n         CASE WHEN SUM(v.valor) >= m.meta THEN 1 ELSE 0 END AS atingiu\n  FROM vendas v\n  JOIN metas m ON m.loja = v.loja\n  GROUP BY v.loja, v.regiao, m.meta\n)\nSELECT regiao, SUM(atingiu) AS lojas_que_atingiram\nFROM lojas_atingiram\nGROUP BY regiao;'
+  },
+  {
+    prompt: 'Desafio avançado: usando duas CTEs, encontre os produtos cujo faturamento representa mais de 10% do faturamento total da empresa.',
+    mode: 'keywords',
+    keywords: ['with', 'faturamento_produto', 'faturamento_total', 'sum', 'cross join', '10'],
+    hint: 'Uma CTE calcula o total por produto e outra calcula o total geral. Depois compare os dois resultados.',
+    answer: 'WITH faturamento_produto AS (\n  SELECT produto, SUM(valor) AS faturamento\n  FROM vendas\n  GROUP BY produto\n),\nfaturamento_total AS (\n  SELECT SUM(valor) AS total\n  FROM vendas\n)\nSELECT p.produto, p.faturamento,\n       100.0 * p.faturamento / NULLIF(t.total, 0) AS percentual\nFROM faturamento_produto p\nCROSS JOIN faturamento_total t\nWHERE p.faturamento > t.total * 0.10;'
+  },
+  {
+    prompt: 'Desafio avançado: escreva uma CTE recursiva que comece pelo funcionário sem gestor e percorra todos os níveis da hierarquia, retornando id, nome e nível hierárquico.',
+    mode: 'keywords',
+    keywords: ['with recursive', 'hierarquia', 'union all', 'nivel', 'gestor_id', 'join'],
+    hint: 'A parte inicial encontra a raiz. A parte recursiva encontra os subordinados e incrementa o nível.',
+    answer: 'WITH RECURSIVE hierarquia AS (\n  SELECT id, nome, gestor_id, 1 AS nivel\n  FROM funcionarios\n  WHERE gestor_id IS NULL\n\n  UNION ALL\n\n  SELECT f.id, f.nome, f.gestor_id, h.nivel + 1\n  FROM funcionarios f\n  JOIN hierarquia h ON f.gestor_id = h.id\n)\nSELECT *\nFROM hierarquia;'
+  },
+  {
+    prompt: 'Desafio de negócio: crie uma CTE para calcular faturamento e meta por loja e uma segunda CTE para classificar cada loja como "Acima da meta", "Atingiu" ou "Abaixo da meta".',
+    mode: 'keywords',
+    keywords: ['with', 'desempenho', 'classificacao', 'case', 'when', 'faturamento', 'meta'],
+    hint: 'Esse exercício simula uma etapa de preparação de dados para um dashboard de desempenho.',
+    answer: 'WITH desempenho AS (\n  SELECT v.loja, SUM(v.valor) AS faturamento, m.meta\n  FROM vendas v\n  JOIN metas m ON m.loja = v.loja\n  GROUP BY v.loja, m.meta\n),\nclassificacao AS (\n  SELECT loja, faturamento, meta,\n         CASE\n           WHEN faturamento > meta THEN \'Acima da meta\'\n           WHEN faturamento = meta THEN \'Atingiu\'\n           ELSE \'Abaixo da meta\'\n         END AS status\n  FROM desempenho\n)\nSELECT * FROM classificacao;'
+  }
+];
+
+const container = document.getElementById('exercises');
+
+exercises.forEach((ex, i) => {
+  const card = document.createElement('div');
+  card.className = 'exercise';
+
+  const isTextarea = ex.mode === 'keywords';
+  card.innerHTML = `
+    <div class="ex-head"><span class="ex-num">Exercício ${i + 1}</span></div>
+    <p class="ex-prompt">${ex.prompt}</p>
+    ${ex.context ? `<div class="ex-context">${ex.context}</div>` : ''}
+    ${ex.hint ? `<p class="ex-hint">${ex.hint}</p>` : ''}
+    ${isTextarea
+      ? `<textarea rows="3" placeholder="Digite sua resposta..."></textarea>`
+      : `<input type="text" placeholder="Digite sua resposta...">`}
+    <div class="ex-actions">
+      <button class="btn-check">Verificar resposta</button>
+      <button class="btn-reveal">Ver resposta</button>
+    </div>
+    <div class="feedback"></div>
+    <div class="answer-box"></div>
+  `;
+
+  const input = card.querySelector('textarea, input');
+  const feedback = card.querySelector('.feedback');
+  const answerBox = card.querySelector('.answer-box');
+
+  card.querySelector('.btn-check').addEventListener('click', () => {
+    const val = norm(input.value);
+    let correct;
+    if (ex.mode === 'exact') {
+      correct = ex.accept.some(a => norm(a) === val);
+    } else {
+      correct = ex.keywords.every(k => val.includes(norm(k)));
+    }
+    feedback.textContent = correct
+      ? 'Correto!'
+      : 'Ainda não é isso. Tente de novo ou veja a resposta.';
+    feedback.className = 'feedback show ' + (correct ? 'correct' : 'incorrect');
+  });
+
+  card.querySelector('.btn-reveal').addEventListener('click', () => {
+    answerBox.textContent = ex.answer;
+    answerBox.classList.toggle('show');
+  });
+
+  container.appendChild(card);
+});
+</script>
+</body>
+</html>
