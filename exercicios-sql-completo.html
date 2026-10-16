@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Exercícios de SQL — 8 trilhas</title>
+<style>
+:root{--bg:#fbfdfc;color-scheme:light;--card:#fff;--ink:#14231c;--mut:#5b6b63;--line:#d3ddd7;--acc:#0f766e;--ok:#15803d;--okb:#e3f5e8;--no:#b42318;--nob:#fdeaea;--code:#eef5f1;--codeink:#14352b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Georgia,"Times New Roman",serif}
+main{max-width:780px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:2rem;line-height:1.15;margin:8px 0 6px}
+.sub{color:var(--mut);margin:0 0 14px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:10px 0;z-index:2;border-bottom:1px solid var(--line)}
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.filters button{background:var(--card);color:var(--acc)}
+.filters button.on{background:var(--acc);color:#fff}
+.meter{display:flex;align-items:center;gap:12px;margin-top:10px}
+.prog{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+#score{font:600 14px system-ui,sans-serif;white-space:nowrap}
+.lvl{margin-top:28px}
+.lvl>h2{font-size:1.5rem;margin:0 0 4px}
+.lvl>p{color:var(--mut);margin:0 0 12px}
+.schema{background:var(--code);color:var(--codeink);border-radius:10px;padding:14px 16px;font:14px/1.7 ui-monospace,Menlo,Consolas,monospace;overflow-x:auto;white-space:pre}
+.ex{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:8px;padding:16px;margin:16px 0}
+.ex.ok{border-left-color:var(--ok)}
+.ex h3{font:600 1rem/1.4 Georgia,serif;margin:0 0 10px}
+.ex h3 span{color:var(--acc);margin-right:6px}
+textarea{width:100%;box-sizing:border-box;min-height:96px;resize:vertical;background:var(--code);color:var(--codeink);border:1px solid var(--line);border-radius:6px;padding:10px;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace}
+textarea:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+button{font:600 14px system-ui,sans-serif;padding:9px 14px;border-radius:6px;border:1px solid var(--acc);cursor:pointer}
+.chk{background:var(--acc);color:#fff}
+.sec{background:transparent;color:var(--acc)}
+.fb{margin-top:10px;padding:8px 12px;border-radius:6px;font:14px/1.5 system-ui,sans-serif;display:none}
+.fb.good{display:block;background:var(--okb);color:var(--ok)}
+.fb.bad{display:block;background:var(--nob);color:var(--no)}
+.fb.info{display:block;background:var(--code);color:var(--codeink);font-family:ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;overflow-x:auto}
+.reset{margin-top:24px}
+</style>
+</head>
+<body>
+<main>
+<h1>Exercícios de SQL</h1>
+<p class="sub">Oito trilhas: quatro por nível e quatro por tema. Escreva a consulta, clique em Verificar e use os filtros para escolher a trilha. Maiúsculas, espaços e o ponto e vírgula final não importam.</p>
+<div class="bar"><div class="filters" id="fl"></div><div class="meter"><div class="prog"><i id="pb"></i></div><div id="score">0 corretos</div></div></div>
+<div id="list"></div>
+<button class="sec reset" id="rs">Limpar tudo</button>
+</main>
+<script>
+var S1="clientes (id, nome, cidade, idade)\nprodutos (id, nome, categoria, preco)\npedidos  (id, cliente_id, produto_id, quantidade, data)";
+var S2="clientes  (id, nome, renda, segmento)\ncontratos (id, cliente_id, produto, valor, data_contratacao)\nparcelas  (id, contrato_id, numero, vencimento, valor,\n           data_pagamento, dias_atraso)";
+var SECTIONS=[
+{id:"facil",nome:"Fácil",fmt:"old",desc:"SELECT, WHERE, ORDER BY, agregações, GROUP BY e um JOIN simples.",schema:S1,data:[
+["Selecione todas as colunas e linhas da tabela clientes.",["select * from clientes"],"SELECT * FROM clientes;"],
+["Selecione apenas as colunas nome e cidade de clientes.",["select nome, cidade from clientes"],"SELECT nome, cidade FROM clientes;"],
+["Liste os clientes cuja cidade é 'Porto Alegre'.",["select * from clientes where cidade = 'porto alegre'"],"SELECT * FROM clientes WHERE cidade = 'Porto Alegre';"],
+["Liste os clientes com idade maior que 30.",["select * from clientes where idade > 30"],"SELECT * FROM clientes WHERE idade > 30;"],
+["Liste todos os produtos ordenados pelo preço, do menor para o maior.",["select * from produtos order by preco"],"SELECT * FROM produtos ORDER BY preco;"],
+["Liste todos os produtos ordenados pelo preço, do maior para o menor.",["select * from produtos order by preco desc"],"SELECT * FROM produtos ORDER BY preco DESC;"],
+["Retorne apenas os 5 primeiros registros da tabela produtos.",["select * from produtos limit 5"],"SELECT * FROM produtos LIMIT 5;"],
+["Conte quantos clientes existem na tabela clientes.",["select count(*) from clientes","select count(id) from clientes","select count(1) from clientes"],"SELECT COUNT(*) FROM clientes;"],
+["Calcule o preço médio dos produtos.",["select avg(preco) from produtos"],"SELECT AVG(preco) FROM produtos;"],
+["Some a coluna quantidade da tabela pedidos.",["select sum(quantidade) from pedidos"],"SELECT SUM(quantidade) FROM pedidos;"],
+["Encontre o maior preço entre os produtos.",["select max(preco) from produtos"],"SELECT MAX(preco) FROM produtos;"],
+["Liste as cidades dos clientes sem repetições.",["select distinct cidade from clientes"],"SELECT DISTINCT cidade FROM clientes;"],
+["Liste os clientes cujo nome começa com a letra 'A'.",["select * from clientes where nome like 'a%'"],"SELECT * FROM clientes WHERE nome LIKE 'A%';"],
+["Liste os clientes com idade entre 20 e 40 (inclusive), usando BETWEEN.",["select * from clientes where idade between 20 and 40"],"SELECT * FROM clientes WHERE idade BETWEEN 20 AND 40;"],
+["Liste os clientes das cidades 'Porto Alegre' ou 'Canoas', usando IN.",["select * from clientes where cidade in ('porto alegre','canoas')"],"SELECT * FROM clientes WHERE cidade IN ('Porto Alegre', 'Canoas');"],
+["Liste os produtos da categoria 'Eletrônicos' com preço menor que 500.",["select * from produtos where categoria = 'eletrônicos' and preco < 500","select * from produtos where preco < 500 and categoria = 'eletrônicos'"],"SELECT * FROM produtos WHERE categoria = 'Eletrônicos' AND preco < 500;"],
+["Mostre cada cidade e a quantidade de clientes dela, usando GROUP BY.",["select cidade, count(*) from clientes group by cidade","select cidade, count(id) from clientes group by cidade"],"SELECT cidade, COUNT(*) FROM clientes GROUP BY cidade;"],
+["Mostre as cidades que têm mais de 2 clientes (cidade e quantidade), usando HAVING.",["select cidade, count(*) from clientes group by cidade having count(*) > 2","select cidade, count(id) from clientes group by cidade having count(id) > 2"],"SELECT cidade, COUNT(*) FROM clientes GROUP BY cidade HAVING COUNT(*) > 2;"],
+["Use JOIN para listar o nome do cliente e o id do pedido. Use os apelidos c (clientes) e p (pedidos), nessa ordem de colunas.",["select c.nome, p.id from clientes c join pedidos p on c.id = p.cliente_id","select c.nome, p.id from clientes c join pedidos p on p.cliente_id = c.id","select c.nome, p.id from clientes as c join pedidos as p on c.id = p.cliente_id"],"SELECT c.nome, p.id FROM clientes c JOIN pedidos p ON c.id = p.cliente_id;"],
+["Atualize o preço do produto de id 1 para 99.90.",["update produtos set preco = 99.90 where id = 1","update produtos set preco = 99.9 where id = 1","update produtos set preco = 99,90 where id = 1"],"UPDATE produtos SET preco = 99.90 WHERE id = 1;"]
+]},
+{id:"medio",nome:"Médio",fmt:"old",desc:"JOINs, subconsultas, CASE, UNION, funções de janela e comandos de escrita. Siga os apelidos pedidos.",schema:S1,data:[
+["Mostre cada cliente_id de pedidos e a quantidade de pedidos dele, com o apelido total.",["select cliente_id, count(*) as total from pedidos group by cliente_id","select cliente_id, count(id) as total from pedidos group by cliente_id"],"SELECT cliente_id, COUNT(*) AS total FROM pedidos GROUP BY cliente_id;"],
+["Liste o nome do cliente e o nome do produto de cada pedido. Parta de pedidos pe, junte clientes c e depois produtos pr, nessa ordem de colunas (c.nome, pr.nome).",["select c.nome, pr.nome from pedidos pe join clientes c on pe.cliente_id = c.id join produtos pr on pe.produto_id = pr.id"],"SELECT c.nome, pr.nome\nFROM pedidos pe\nJOIN clientes c ON pe.cliente_id = c.id\nJOIN produtos pr ON pe.produto_id = pr.id;"],
+["Liste o nome dos clientes que nunca fizeram pedido, usando LEFT JOIN e IS NULL. Apelidos: c (clientes) e p (pedidos).",["select c.nome from clientes c left join pedidos p on p.cliente_id = c.id where p.id is null","select c.nome from clientes c left join pedidos p on p.cliente_id = c.id where p.cliente_id is null"],"SELECT c.nome\nFROM clientes c\nLEFT JOIN pedidos p ON p.cliente_id = c.id\nWHERE p.id IS NULL;"],
+["Calcule a receita total (preço × quantidade) de todos os pedidos, com o apelido receita. Apelidos: pe (pedidos) e pr (produtos).",["select sum(pr.preco*pe.quantidade) as receita from pedidos pe join produtos pr on pe.produto_id = pr.id","select sum(pe.quantidade*pr.preco) as receita from pedidos pe join produtos pr on pe.produto_id = pr.id"],"SELECT SUM(pr.preco * pe.quantidade) AS receita\nFROM pedidos pe\nJOIN produtos pr ON pe.produto_id = pr.id;"],
+["Liste os produtos com preço acima da média, usando uma subconsulta.",["select * from produtos where preco > (select avg(preco) from produtos)"],"SELECT * FROM produtos\nWHERE preco > (SELECT AVG(preco) FROM produtos);"],
+["Liste os clientes que já fizeram pedido, usando IN com subconsulta em pedidos.",["select * from clientes where id in (select cliente_id from pedidos)"],"SELECT * FROM clientes\nWHERE id IN (SELECT cliente_id FROM pedidos);"],
+["Liste os produtos que nunca foram pedidos, usando NOT IN com subconsulta.",["select * from produtos where id not in (select produto_id from pedidos)"],"SELECT * FROM produtos\nWHERE id NOT IN (SELECT produto_id FROM pedidos);"],
+["Mostre o nome do cliente e uma coluna faixa: 'Adulto' se idade >= 18, senão 'Menor'. Use CASE.",["select nome, case when idade >= 18 then 'adulto' else 'menor' end as faixa from clientes"],"SELECT nome,\n  CASE WHEN idade >= 18 THEN 'Adulto' ELSE 'Menor' END AS faixa\nFROM clientes;"],
+["Mostre o nome do cliente e a cidade, trocando cidade nula por 'Não informada'. Use COALESCE e o apelido cidade.",["select nome, coalesce(cidade, 'não informada') as cidade from clientes"],"SELECT nome, COALESCE(cidade, 'Não informada') AS cidade FROM clientes;"],
+["Mostre o nome dos clientes em maiúsculas e o tamanho do nome (LENGTH), nessa ordem, sem apelidos.",["select upper(nome), length(nome) from clientes"],"SELECT UPPER(nome), LENGTH(nome) FROM clientes;"],
+["Liste os clientes ordenados por cidade (A-Z) e, dentro de cada cidade, por idade da maior para a menor.",["select * from clientes order by cidade, idade desc"],"SELECT * FROM clientes ORDER BY cidade, idade DESC;"],
+["Ordene os produtos do mais caro para o mais barato, pule os 2 primeiros e retorne os 3 seguintes (LIMIT e OFFSET).",["select * from produtos order by preco desc limit 3 offset 2"],"SELECT * FROM produtos ORDER BY preco DESC LIMIT 3 OFFSET 2;"],
+["Conte quantas cidades diferentes existem em clientes (sem apelido).",["select count(distinct cidade) from clientes"],"SELECT COUNT(DISTINCT cidade) FROM clientes;"],
+["Mostre cada categoria e a quantidade total vendida, com o apelido total. Apelidos: pe (pedidos) e pr (produtos); colunas pr.categoria e a soma.",["select pr.categoria, sum(pe.quantidade) as total from pedidos pe join produtos pr on pe.produto_id = pr.id group by pr.categoria"],"SELECT pr.categoria, SUM(pe.quantidade) AS total\nFROM pedidos pe\nJOIN produtos pr ON pe.produto_id = pr.id\nGROUP BY pr.categoria;"],
+["Mostre o nome e a quantidade de pedidos (apelido total) dos clientes com mais de 3 pedidos. Apelidos: c e p; agrupe por c.nome.",["select c.nome, count(*) as total from clientes c join pedidos p on p.cliente_id = c.id group by c.nome having count(*) > 3","select c.nome, count(p.id) as total from clientes c join pedidos p on p.cliente_id = c.id group by c.nome having count(p.id) > 3"],"SELECT c.nome, COUNT(*) AS total\nFROM clientes c\nJOIN pedidos p ON p.cliente_id = c.id\nGROUP BY c.nome\nHAVING COUNT(*) > 3;"],
+["Junte em uma única coluna os nomes de clientes e de produtos, sem repetições, usando UNION (clientes primeiro).",["select nome from clientes union select nome from produtos"],"SELECT nome FROM clientes\nUNION\nSELECT nome FROM produtos;"],
+["Liste os clientes que têm ao menos um pedido, usando EXISTS. Apelidos: c (clientes) e p (pedidos).",["select * from clientes c where exists (select 1 from pedidos p where p.cliente_id = c.id)","select * from clientes c where exists (select * from pedidos p where p.cliente_id = c.id)"],"SELECT * FROM clientes c\nWHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id);"],
+["Insira em clientes: id 100, nome 'Maria', cidade 'Canoas', idade 28 (informe a lista de colunas).",["insert into clientes (id, nome, cidade, idade) values (100, 'maria', 'canoas', 28)"],"INSERT INTO clientes (id, nome, cidade, idade)\nVALUES (100, 'Maria', 'Canoas', 28);"],
+["Apague de pedidos os registros com quantidade igual a 0 ou data anterior a '2020-01-01' (nessa ordem de condições).",["delete from pedidos where quantidade = 0 or data < '2020-01-01'"],"DELETE FROM pedidos\nWHERE quantidade = 0 OR data < '2020-01-01';"],
+["Mostre nome, preco e um ranking dos produtos do mais caro ao mais barato, usando ROW_NUMBER() OVER e o apelido ranking.",["select nome, preco, row_number() over (order by preco desc) as ranking from produtos"],"SELECT nome, preco,\n  ROW_NUMBER() OVER (ORDER BY preco DESC) AS ranking\nFROM produtos;"]
+]},
+{id:"dificil",nome:"Difícil",fmt:"new",desc:"Risco de crédito: CTEs, janelas, subconsultas correlacionadas, self join e indicadores de inadimplência.",schema:"clientes  (id, nome, renda, segmento)\ncontratos (id, cliente_id, produto, valor, data_contratacao)\nparcelas  (id, contrato_id, numero, vencimento, valor,\n           data_pagamento, dias_atraso)",data:[
+["Com uma CTE chamada t (cliente_id e SUM(valor) com apelido total, agrupando contratos por cliente_id), retorne todas as colunas de t onde total > 100000.",
+"WITH t AS (SELECT cliente_id, SUM(valor) AS total FROM contratos GROUP BY cliente_id)\nSELECT * FROM t WHERE total > 100000;"],
+["Mostre id, produto, valor e RANK() dentro de cada produto, do maior valor para o menor, com o apelido rk (tabela contratos).",
+"SELECT id, produto, valor,\n  RANK() OVER (PARTITION BY produto ORDER BY valor DESC) AS rk\nFROM contratos;"],
+["Mostre id, data_contratacao, valor e o valor acumulado (SUM OVER ordenado por data_contratacao) com o apelido acumulado.",
+"SELECT id, data_contratacao, valor,\n  SUM(valor) OVER (ORDER BY data_contratacao) AS acumulado\nFROM contratos;"],
+["Calcule o percentual de parcelas com dias_atraso > 90, com o apelido pct_inad. Use 100.0 * SUM(CASE ...) / COUNT(*).",
+"SELECT 100.0 * SUM(CASE WHEN dias_atraso > 90 THEN 1 ELSE 0 END) / COUNT(*) AS pct_inad\nFROM parcelas;",
+["select sum(case when dias_atraso > 90 then 1 else 0 end) * 100.0 / count(*) as pct_inad from parcelas","select 100.0 * avg(case when dias_atraso > 90 then 1.0 else 0 end) as pct_inad from parcelas"]],
+["Mostre c.segmento e a exposição SUM(ct.valor) com o apelido exposicao, apenas para segmentos com exposição acima de 500000. Apelidos: c e ct.",
+"SELECT c.segmento, SUM(ct.valor) AS exposicao\nFROM clientes c\nJOIN contratos ct ON ct.cliente_id = c.id\nGROUP BY c.segmento\nHAVING SUM(ct.valor) > 500000;"],
+["Mostre c.id e o maior atraso do cliente (MAX(p.dias_atraso)) com o apelido max_atraso. Apelidos: c, ct (contratos) e p (parcelas), nessa ordem de JOINs.",
+"SELECT c.id, MAX(p.dias_atraso) AS max_atraso\nFROM clientes c\nJOIN contratos ct ON ct.cliente_id = c.id\nJOIN parcelas p ON p.contrato_id = ct.id\nGROUP BY c.id;"],
+["Liste os contratos (apelido c) com valor acima da média do mesmo produto, usando subconsulta correlacionada sobre contratos c2 (WHERE c2.produto = c.produto).",
+"SELECT * FROM contratos c\nWHERE c.valor > (SELECT AVG(c2.valor) FROM contratos c2 WHERE c2.produto = c.produto);"],
+["Com a CTE r (todas as colunas de contratos + ROW_NUMBER() OVER (PARTITION BY produto ORDER BY valor DESC) com o apelido rn), retorne os 3 maiores contratos de cada produto (rn <= 3).",
+"WITH r AS (\n  SELECT *, ROW_NUMBER() OVER (PARTITION BY produto ORDER BY valor DESC) AS rn\n  FROM contratos\n)\nSELECT * FROM r WHERE rn <= 3;"],
+["Mostre contrato_id, numero, valor e o valor da parcela anterior no mesmo contrato com LAG, apelido valor_anterior (ordene a janela por numero).",
+"SELECT contrato_id, numero, valor,\n  LAG(valor) OVER (PARTITION BY contrato_id ORDER BY numero) AS valor_anterior\nFROM parcelas;"],
+["Classifique as parcelas em faixa com CASE: 'Em dia' (dias_atraso = 0), '1-30' (<= 30), '31-90' (<= 90), senão '90+'. Mostre faixa e COUNT(*) com apelido qtd, agrupando por faixa.",
+"SELECT CASE WHEN dias_atraso = 0 THEN 'Em dia' WHEN dias_atraso <= 30 THEN '1-30' WHEN dias_atraso <= 90 THEN '31-90' ELSE '90+' END AS faixa,\n  COUNT(*) AS qtd\nFROM parcelas\nGROUP BY faixa;",
+["select case when dias_atraso = 0 then 'em dia' when dias_atraso <= 30 then '1-30' when dias_atraso <= 90 then '31-90' else '90+' end as faixa, count(*) as qtd from parcelas group by 1"]],
+["Liste os clientes (apelido c) sem nenhuma parcela em atraso (dias_atraso > 0), usando NOT EXISTS com contratos ct e parcelas p dentro da subconsulta.",
+"SELECT * FROM clientes c\nWHERE NOT EXISTS (\n  SELECT 1 FROM contratos ct\n  JOIN parcelas p ON p.contrato_id = ct.id\n  WHERE ct.cliente_id = c.id AND p.dias_atraso > 0\n);",
+["select * from clientes c where not exists (select 1 from contratos ct join parcelas p on p.contrato_id = ct.id where p.dias_atraso > 0 and ct.cliente_id = c.id)"]],
+["Com self join de contratos (apelidos a e b), liste os pares a.id, b.id do mesmo cliente em que a.id < b.id.",
+"SELECT a.id, b.id\nFROM contratos a\nJOIN contratos b ON a.cliente_id = b.cliente_id AND a.id < b.id;",
+["select a.id, b.id from contratos a join contratos b on a.id < b.id and a.cliente_id = b.cliente_id"]],
+["Mostre id, valor e a média móvel dos 3 últimos contratos (a linha atual e as 2 anteriores), ordenando a janela por data_contratacao, com o apelido media_movel.",
+"SELECT id, valor,\n  AVG(valor) OVER (ORDER BY data_contratacao ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS media_movel\nFROM contratos;"],
+["Divida os clientes em 4 grupos de renda, da maior para a menor, com NTILE. Mostre nome, renda e o apelido quartil.",
+"SELECT nome, renda, NTILE(4) OVER (ORDER BY renda DESC) AS quartil\nFROM clientes;"],
+["Mostre id, cliente_id e o percentual do valor de cada contrato no total do cliente, com o apelido pct. Use 100.0 * valor / SUM(valor) OVER (PARTITION BY cliente_id).",
+"SELECT id, cliente_id,\n  100.0 * valor / SUM(valor) OVER (PARTITION BY cliente_id) AS pct\nFROM contratos;",
+["select id, cliente_id, valor * 100.0 / sum(valor) over (partition by cliente_id) as pct from contratos"]],
+["Liste c.nome dos clientes cujas parcelas em aberto (p.data_pagamento IS NULL) somam mais de 50% da renda. Apelidos c, ct, p; GROUP BY c.id, c.nome, c.renda e HAVING SUM(p.valor) > 0.5 * c.renda.",
+"SELECT c.nome\nFROM clientes c\nJOIN contratos ct ON ct.cliente_id = c.id\nJOIN parcelas p ON p.contrato_id = ct.id\nWHERE p.data_pagamento IS NULL\nGROUP BY c.id, c.nome, c.renda\nHAVING SUM(p.valor) > 0.5 * c.renda;",
+["select c.nome from clientes c join contratos ct on ct.cliente_id = c.id join parcelas p on p.contrato_id = ct.id where p.data_pagamento is null group by c.id, c.nome, c.renda having sum(p.valor) > c.renda * 0.5"]],
+["Com a CTE e (cliente_id, SUM(valor) com apelido total, agrupando contratos por cliente_id), retorne os clientes de e com total acima da média de e.total (subconsulta sobre e).",
+"WITH e AS (SELECT cliente_id, SUM(valor) AS total FROM contratos GROUP BY cliente_id)\nSELECT * FROM e WHERE total > (SELECT AVG(total) FROM e);"],
+["Mostre c.nome e o total contratado (COALESCE(SUM(ct.valor), 0), apelido total), incluindo clientes sem contrato. Use LEFT JOIN com apelidos c e ct, GROUP BY c.id, c.nome.",
+"SELECT c.nome, COALESCE(SUM(ct.valor), 0) AS total\nFROM clientes c\nLEFT JOIN contratos ct ON ct.cliente_id = c.id\nGROUP BY c.id, c.nome;"],
+["Mostre o ano de contratação (EXTRACT(YEAR FROM data_contratacao), apelido ano) e a quantidade de contratos (COUNT(*), apelido qtd), agrupando por ano.",
+"SELECT EXTRACT(YEAR FROM data_contratacao) AS ano, COUNT(*) AS qtd\nFROM contratos\nGROUP BY ano;",
+["select extract(year from data_contratacao) as ano, count(*) as qtd from contratos group by 1","select extract(year from data_contratacao) as ano, count(*) as qtd from contratos group by extract(year from data_contratacao)"]],
+["Para cada contrato com 2 ou mais parcelas acima de 90 dias de atraso, mostre contrato_id e o número da primeira parcela nessa situação (MIN(numero), apelido primeira).",
+"SELECT contrato_id, MIN(numero) AS primeira\nFROM parcelas\nWHERE dias_atraso > 90\nGROUP BY contrato_id\nHAVING COUNT(*) >= 2;"]
+]},
+{id:"joins",nome:"Joins",fmt:"new",desc:"Do INNER JOIN a self join, anti-join, CROSS, FULL e junções com subconsulta.",schema:"agencias  (id, nome, cidade)\nclientes  (id, nome, agencia_id, indicado_por)\nprodutos  (id, nome)\ncontratos (id, cliente_id, produto_id, valor)",data:[
+["INNER JOIN: liste o nome do cliente e o nome da agência. Apelidos: c (clientes) e a (agencias); colunas c.nome, a.nome.",
+"SELECT c.nome, a.nome\nFROM clientes c\nJOIN agencias a ON c.agencia_id = a.id;"],
+["Liste o id do contrato, o nome do cliente e o valor (ct.id, c.nome, ct.valor). Parta de contratos ct e junte clientes c.",
+"SELECT ct.id, c.nome, ct.valor\nFROM contratos ct\nJOIN clientes c ON ct.cliente_id = c.id;"],
+["LEFT JOIN: liste todas as agências com seus clientes (a.nome, c.nome), mantendo agências sem clientes. Parta de agencias a.",
+"SELECT a.nome, c.nome\nFROM agencias a\nLEFT JOIN clientes c ON c.agencia_id = a.id;"],
+["RIGHT JOIN: obtenha o mesmo resultado do desafio anterior (a.nome, c.nome), mas partindo de clientes c e usando RIGHT JOIN em agencias a.",
+"SELECT a.nome, c.nome\nFROM clientes c\nRIGHT JOIN agencias a ON c.agencia_id = a.id;"],
+["Anti-join: liste o nome das agências sem nenhum cliente, com LEFT JOIN e IS NULL. Apelidos a e c; filtre por c.id.",
+"SELECT a.nome\nFROM agencias a\nLEFT JOIN clientes c ON c.agencia_id = a.id\nWHERE c.id IS NULL;"],
+["Anti-join: liste o nome dos clientes sem nenhum contrato, com LEFT JOIN e IS NULL. Apelidos c e ct; filtre por ct.id.",
+"SELECT c.nome\nFROM clientes c\nLEFT JOIN contratos ct ON ct.cliente_id = c.id\nWHERE ct.id IS NULL;"],
+["Três tabelas: liste ct.id, c.nome e p.nome (produto). Parta de contratos ct, junte clientes c e depois produtos p.",
+"SELECT ct.id, c.nome, p.nome\nFROM contratos ct\nJOIN clientes c ON ct.cliente_id = c.id\nJOIN produtos p ON ct.produto_id = p.id;"],
+["Quatro tabelas: liste c.nome, a.nome, p.nome e ct.valor. Parta de contratos ct, junte clientes c, depois agencias a (via c.agencia_id) e por fim produtos p.",
+"SELECT c.nome, a.nome, p.nome, ct.valor\nFROM contratos ct\nJOIN clientes c ON ct.cliente_id = c.id\nJOIN agencias a ON c.agencia_id = a.id\nJOIN produtos p ON ct.produto_id = p.id;"],
+["Liste c.nome e ct.valor dos contratos com valor maior que 10000, usando JOIN e filtro no WHERE. Parta de clientes c e junte contratos ct.",
+"SELECT c.nome, ct.valor\nFROM clientes c\nJOIN contratos ct ON ct.cliente_id = c.id\nWHERE ct.valor > 10000;"],
+["Filtro no ON: liste todos os clientes (c.nome) e, quando houver, os contratos com valor > 10000 (ct.valor). Clientes sem contrato grande devem aparecer com NULL. Use LEFT JOIN com a condição de valor dentro do ON (depois da condição de chave).",
+"SELECT c.nome, ct.valor\nFROM clientes c\nLEFT JOIN contratos ct ON ct.cliente_id = c.id AND ct.valor > 10000;",
+["select c.nome, ct.valor from clientes c left join contratos ct on ct.valor > 10000 and ct.cliente_id = c.id"]],
+["Self join: liste o nome do cliente e o nome de quem o indicou (c.nome, i.nome), apenas clientes indicados. Apelidos c e i, ambos de clientes; ligue c.indicado_por a i.id.",
+"SELECT c.nome, i.nome\nFROM clientes c\nJOIN clientes i ON c.indicado_por = i.id;"],
+["Self join com LEFT JOIN: liste todos os clientes (c.nome) e o nome de quem os indicou (i.nome), com NULL para quem não foi indicado.",
+"SELECT c.nome, i.nome\nFROM clientes c\nLEFT JOIN clientes i ON c.indicado_por = i.id;"],
+["Mostre cada agência (a.nome) e a quantidade de clientes dela, com o apelido qtd_clientes, incluindo agências com zero clientes. Use LEFT JOIN, COUNT(c.id) e GROUP BY a.nome.",
+"SELECT a.nome, COUNT(c.id) AS qtd_clientes\nFROM agencias a\nLEFT JOIN clientes c ON c.agencia_id = a.id\nGROUP BY a.nome;"],
+["Mostre cada produto (p.nome) e o valor total contratado, com o apelido total (JOIN entre produtos p e contratos ct, GROUP BY p.nome).",
+"SELECT p.nome, SUM(ct.valor) AS total\nFROM produtos p\nJOIN contratos ct ON ct.produto_id = p.id\nGROUP BY p.nome;"],
+["Mostre c.nome e o total contratado (apelido total) apenas dos clientes com total acima de 50000. Use JOIN de clientes c com contratos ct, GROUP BY c.nome e HAVING.",
+"SELECT c.nome, SUM(ct.valor) AS total\nFROM clientes c\nJOIN contratos ct ON ct.cliente_id = c.id\nGROUP BY c.nome\nHAVING SUM(ct.valor) > 50000;"],
+["CROSS JOIN: gere todas as combinações de cliente e produto (c.nome, p.nome). Parta de clientes c.",
+"SELECT c.nome, p.nome\nFROM clientes c\nCROSS JOIN produtos p;"],
+["FULL JOIN: liste todos os produtos e todos os contratos, com ou sem correspondência (p.nome, ct.id). Parta de produtos p e junte contratos ct.",
+"SELECT p.nome, ct.id\nFROM produtos p\nFULL JOIN contratos ct ON ct.produto_id = p.id;"],
+["Self join por agência: liste os pares de clientes da mesma agência (a.nome, b.nome) em que a.id < b.id. Apelidos a e b, ambos de clientes.",
+"SELECT a.nome, b.nome\nFROM clientes a\nJOIN clientes b ON a.agencia_id = b.agencia_id AND a.id < b.id;",
+["select a.nome, b.nome from clientes a join clientes b on a.id < b.id and a.agencia_id = b.agencia_id"]],
+["JOIN com tabela derivada: mostre c.nome e t.total, onde t é a subconsulta (cliente_id e SUM(valor) com apelido total, agrupando contratos por cliente_id). Parta de clientes c.",
+"SELECT c.nome, t.total\nFROM clientes c\nJOIN (SELECT cliente_id, SUM(valor) AS total FROM contratos GROUP BY cliente_id) t ON t.cliente_id = c.id;"],
+["Desafio final: para cada agência (a.nome), mostre o total contratado com COALESCE(SUM(ct.valor), 0) e o apelido total, incluindo agências sem clientes ou sem contratos. Use dois LEFT JOINs (clientes c, depois contratos ct) e GROUP BY a.id, a.nome.",
+"SELECT a.nome, COALESCE(SUM(ct.valor), 0) AS total\nFROM agencias a\nLEFT JOIN clientes c ON c.agencia_id = a.id\nLEFT JOIN contratos ct ON ct.cliente_id = c.id\nGROUP BY a.id, a.nome;"]
+]},
+{id:"case",nome:"CASE WHEN",fmt:"new",desc:"Classificação, colunas condicionais, pivot com SUM/COUNT, CASE no ORDER BY e no UPDATE.",schema:S2,data:[
+["Mostre nome e a classe de renda com CASE: 'Alta' se renda >= 10000, 'Média' se renda >= 5000, senão 'Baixa'. Apelido classe (tabela clientes).","SELECT nome,\n  CASE WHEN renda >= 10000 THEN 'Alta' WHEN renda >= 5000 THEN 'Média' ELSE 'Baixa' END AS classe\nFROM clientes;"],
+["Mostre o id da parcela e a situacao: 'Paga' se data_pagamento IS NOT NULL, senão 'Aberta'.","SELECT id,\n  CASE WHEN data_pagamento IS NOT NULL THEN 'Paga' ELSE 'Aberta' END AS situacao\nFROM parcelas;"],
+["Conte as parcelas pagas com SUM(CASE ...), valendo 1 para paga (data_pagamento IS NOT NULL) e 0 caso contrário. Apelido pagas.","SELECT SUM(CASE WHEN data_pagamento IS NOT NULL THEN 1 ELSE 0 END) AS pagas FROM parcelas;"],
+["Pivot: por contrato_id, mostre em_dia (parcelas com dias_atraso = 0) e atrasadas (dias_atraso > 0), ambas com SUM(CASE ...).","SELECT contrato_id,\n  SUM(CASE WHEN dias_atraso = 0 THEN 1 ELSE 0 END) AS em_dia,\n  SUM(CASE WHEN dias_atraso > 0 THEN 1 ELSE 0 END) AS atrasadas\nFROM parcelas\nGROUP BY contrato_id;"],
+["Liste todos os clientes ordenando primeiro os do segmento 'Premium' e depois os demais, usando CASE no ORDER BY (0 para Premium, 1 para os outros) e, em seguida, nome.","SELECT * FROM clientes\nORDER BY CASE WHEN segmento = 'Premium' THEN 0 ELSE 1 END, nome;"],
+["Reajuste em 10% o valor dos contratos do produto 'Consignado' e mantenha os demais, com UPDATE e CASE na coluna valor.","UPDATE contratos\nSET valor = CASE WHEN produto = 'Consignado' THEN valor * 1.1 ELSE valor END;"],
+["Calcule a média de atraso considerando só parcelas atrasadas: AVG(CASE WHEN dias_atraso > 0 THEN dias_atraso END), apelido media_atraso.","SELECT AVG(CASE WHEN dias_atraso > 0 THEN dias_atraso END) AS media_atraso FROM parcelas;"],
+["Por c.segmento, some só os contratos de valor >= 50000, com o apelido grandes (SUM(CASE ... ELSE 0 END)). Apelidos c e ct; GROUP BY c.segmento.","SELECT c.segmento,\n  SUM(CASE WHEN ct.valor >= 50000 THEN ct.valor ELSE 0 END) AS grandes\nFROM clientes c\nJOIN contratos ct ON ct.cliente_id = c.id\nGROUP BY c.segmento;"],
+["Mostre c.nome e status: 'Com contrato' se COUNT(ct.id) > 0, senão 'Sem contrato'. LEFT JOIN com apelidos c e ct, GROUP BY c.id, c.nome.","SELECT c.nome,\n  CASE WHEN COUNT(ct.id) > 0 THEN 'Com contrato' ELSE 'Sem contrato' END AS status\nFROM clientes c\nLEFT JOIN contratos ct ON ct.cliente_id = c.id\nGROUP BY c.id, c.nome;"],
+["CASE simples (CASE segmento WHEN ...): mostre nome e prioridade, com 'Premium' = 1, 'Varejo' = 2 e qualquer outro = 3.","SELECT nome,\n  CASE segmento WHEN 'Premium' THEN 1 WHEN 'Varejo' THEN 2 ELSE 3 END AS prioridade\nFROM clientes;"],
+["Por contrato_id, calcule o percentual de parcelas pagas: 100.0 * SUM(CASE WHEN data_pagamento IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*), apelido pct_pagas.","SELECT contrato_id,\n  100.0 * SUM(CASE WHEN data_pagamento IS NOT NULL THEN 1 ELSE 0 END) / COUNT(*) AS pct_pagas\nFROM parcelas\nGROUP BY contrato_id;"],
+["Liste os contratos (contrato_id) com ao menos uma parcela acima de 90 dias, usando HAVING SUM(CASE WHEN dias_atraso > 90 THEN 1 ELSE 0 END) > 0.","SELECT contrato_id\nFROM parcelas\nGROUP BY contrato_id\nHAVING SUM(CASE WHEN dias_atraso > 90 THEN 1 ELSE 0 END) > 0;"]
+]},
+{id:"sub",nome:"Subconsulta",fmt:"new",desc:"Escalar, IN, NOT IN, EXISTS, ALL, correlacionada, no SELECT e no FROM.",schema:S2,data:[
+["Liste os clientes com renda acima da média (subconsulta escalar com AVG).","SELECT * FROM clientes\nWHERE renda > (SELECT AVG(renda) FROM clientes);"],
+["Liste o contrato de maior valor usando valor = (SELECT MAX(valor) ...).","SELECT * FROM contratos\nWHERE valor = (SELECT MAX(valor) FROM contratos);"],
+["Liste os clientes que têm contrato do produto 'Consignado', com IN e subconsulta em contratos (cliente_id).","SELECT * FROM clientes\nWHERE id IN (SELECT cliente_id FROM contratos WHERE produto = 'Consignado');"],
+["Liste os clientes sem nenhum contrato, com NOT IN e subconsulta em contratos (cliente_id).","SELECT * FROM clientes\nWHERE id NOT IN (SELECT cliente_id FROM contratos);"],
+["Subconsulta no SELECT: mostre c.nome e a quantidade de contratos dele (apelido qtd), com subconsulta correlacionada sobre contratos ct.","SELECT c.nome,\n  (SELECT COUNT(*) FROM contratos ct WHERE ct.cliente_id = c.id) AS qtd\nFROM clientes c;"],
+["Subconsulta no FROM: calcule a média (apelido media) dos totais por cliente, onde t = (cliente_id, SUM(valor) apelido total, de contratos, GROUP BY cliente_id).","SELECT AVG(t.total) AS media\nFROM (SELECT cliente_id, SUM(valor) AS total FROM contratos GROUP BY cliente_id) t;"],
+["Liste os contratos (apelido c) que têm parcela com dias_atraso > 90, usando EXISTS e parcelas p.","SELECT * FROM contratos c\nWHERE EXISTS (SELECT 1 FROM parcelas p WHERE p.contrato_id = c.id AND p.dias_atraso > 90);"],
+["Liste os contratos com valor maior que todos os contratos do produto 'Cartão', usando > ALL.","SELECT * FROM contratos\nWHERE valor > ALL (SELECT valor FROM contratos WHERE produto = 'Cartão');"],
+["Correlacionada: liste as parcelas p com dias_atraso acima da média do próprio contrato (subconsulta sobre parcelas p2).","SELECT * FROM parcelas p\nWHERE p.dias_atraso > (SELECT AVG(p2.dias_atraso) FROM parcelas p2 WHERE p2.contrato_id = p.contrato_id);"],
+["Encontre o segundo maior valor de contrato: MAX(valor) entre os valores menores que o máximo.","SELECT MAX(valor) FROM contratos\nWHERE valor < (SELECT MAX(valor) FROM contratos);"],
+["Liste os contratos (apelido c) sem nenhuma parcela paga, com NOT EXISTS e parcelas p (data_pagamento IS NOT NULL).","SELECT * FROM contratos c\nWHERE NOT EXISTS (SELECT 1 FROM parcelas p WHERE p.contrato_id = c.id AND p.data_pagamento IS NOT NULL);"],
+["Liste cliente_id dos clientes cujo SUM(valor) supera a média dos totais por cliente. Use HAVING com a subconsulta AVG(t.total) FROM (SELECT SUM(valor) AS total FROM contratos GROUP BY cliente_id) t.","SELECT cliente_id FROM contratos\nGROUP BY cliente_id\nHAVING SUM(valor) > (SELECT AVG(t.total) FROM (SELECT SUM(valor) AS total FROM contratos GROUP BY cliente_id) t);"]
+]},
+{id:"cte",nome:"CTE",fmt:"new",desc:"CTE simples, encadeadas, com JOIN, CASE, window function e recursiva.",schema:S2,data:[
+["Com a CTE grandes (contratos com valor > 50000), conte as linhas dela (COUNT(*)).","WITH grandes AS (SELECT * FROM contratos WHERE valor > 50000)\nSELECT COUNT(*) FROM grandes;"],
+["CTE t (cliente_id, SUM(valor) apelido total, de contratos, GROUP BY cliente_id). Mostre c.nome e t.total juntando clientes c com t.","WITH t AS (SELECT cliente_id, SUM(valor) AS total FROM contratos GROUP BY cliente_id)\nSELECT c.nome, t.total FROM clientes c JOIN t ON t.cliente_id = c.id;"],
+["Duas CTEs: t (cliente_id, SUM(valor) apelido total) e m (AVG(total) apelido media, a partir de t). Retorne t.cliente_id com total > media, usando t CROSS JOIN m.","WITH t AS (SELECT cliente_id, SUM(valor) AS total FROM contratos GROUP BY cliente_id),\n  m AS (SELECT AVG(total) AS media FROM t)\nSELECT t.cliente_id FROM t CROSS JOIN m WHERE t.total > m.media;"],
+["CTE a (contrato_id, MAX(dias_atraso) apelido max_atraso, de parcelas, GROUP BY contrato_id). Retorne contrato_id de a com max_atraso > 90.","WITH a AS (SELECT contrato_id, MAX(dias_atraso) AS max_atraso FROM parcelas GROUP BY contrato_id)\nSELECT contrato_id FROM a WHERE max_atraso > 90;"],
+["CTE t (cliente_id, SUM(valor) apelido total). Calcule a diferença entre o maior e o menor total: MAX(total) - MIN(total), apelido amplitude.","WITH t AS (SELECT cliente_id, SUM(valor) AS total FROM contratos GROUP BY cliente_id)\nSELECT MAX(total) - MIN(total) AS amplitude FROM t;"],
+["CTE i (contrato_id, COUNT(*) apelido qtd, de parcelas com dias_atraso > 0, GROUP BY contrato_id). Mostre ct.id e i.qtd juntando contratos ct com i.","WITH i AS (SELECT contrato_id, COUNT(*) AS qtd FROM parcelas WHERE dias_atraso > 0 GROUP BY contrato_id)\nSELECT ct.id, i.qtd FROM contratos ct JOIN i ON i.contrato_id = ct.id;"],
+["CTE f (id e status: 'Default' se dias_atraso > 90, senão 'Normal', de parcelas). Mostre status e COUNT(*) apelido qtd, GROUP BY status.","WITH f AS (SELECT id, CASE WHEN dias_atraso > 90 THEN 'Default' ELSE 'Normal' END AS status FROM parcelas)\nSELECT status, COUNT(*) AS qtd FROM f GROUP BY status;"],
+["CTE r (todas as colunas de contratos + ROW_NUMBER() OVER (PARTITION BY cliente_id ORDER BY data_contratacao DESC) apelido rn). Retorne o contrato mais recente de cada cliente (rn = 1).","WITH r AS (\n  SELECT *, ROW_NUMBER() OVER (PARTITION BY cliente_id ORDER BY data_contratacao DESC) AS rn\n  FROM contratos\n)\nSELECT * FROM r WHERE rn = 1;"],
+["CTE e (cliente_id, SUM(valor) apelido exposicao). Mostre c.segmento e SUM(e.exposicao) apelido exposicao, juntando clientes c com e, GROUP BY c.segmento.","WITH e AS (SELECT cliente_id, SUM(valor) AS exposicao FROM contratos GROUP BY cliente_id)\nSELECT c.segmento, SUM(e.exposicao) AS exposicao\nFROM clientes c JOIN e ON e.cliente_id = c.id\nGROUP BY c.segmento;"],
+["CTE recursiva: gere os números de 1 a 5 (coluna x), com WITH RECURSIVE n, partindo de SELECT 1 AS x, UNION ALL e x + 1 enquanto x < 5.","WITH RECURSIVE n AS (\n  SELECT 1 AS x\n  UNION ALL\n  SELECT x + 1 FROM n WHERE x < 5\n)\nSELECT x FROM n;"],
+["CTE t (cliente_id, SUM(valor) apelido total). Retorne os 3 maiores totais: SELECT * FROM t ORDER BY total DESC LIMIT 3.","WITH t AS (SELECT cliente_id, SUM(valor) AS total FROM contratos GROUP BY cliente_id)\nSELECT * FROM t ORDER BY total DESC LIMIT 3;"],
+["Duas CTEs: p (contrato_id, SUM(valor) apelido em_atraso, de parcelas com dias_atraso > 0, GROUP BY contrato_id) e c (id, cliente_id de contratos). Mostre c.cliente_id e SUM(p.em_atraso) apelido total_atraso, juntando c com p, GROUP BY c.cliente_id.","WITH p AS (SELECT contrato_id, SUM(valor) AS em_atraso FROM parcelas WHERE dias_atraso > 0 GROUP BY contrato_id),\n  c AS (SELECT id, cliente_id FROM contratos)\nSELECT c.cliente_id, SUM(p.em_atraso) AS total_atraso\nFROM c JOIN p ON p.contrato_id = c.id\nGROUP BY c.cliente_id;"]
+]},
+{id:"window",nome:"Window function",fmt:"new",desc:"ROW_NUMBER, DENSE_RANK, LAG/LEAD, FIRST_VALUE, NTILE e agregações com OVER.",schema:S2,data:[
+["Mostre id, valor e rn = ROW_NUMBER() OVER (ORDER BY valor DESC), da tabela contratos.","SELECT id, valor, ROW_NUMBER() OVER (ORDER BY valor DESC) AS rn FROM contratos;"],
+["Mostre nome, segmento, renda e pos = DENSE_RANK() por segmento, da maior renda para a menor (PARTITION BY segmento).","SELECT nome, segmento, renda,\n  DENSE_RANK() OVER (PARTITION BY segmento ORDER BY renda DESC) AS pos\nFROM clientes;"],
+["Mostre id, cliente_id, valor e total_cliente = SUM(valor) OVER (PARTITION BY cliente_id), de contratos.","SELECT id, cliente_id, valor,\n  SUM(valor) OVER (PARTITION BY cliente_id) AS total_cliente\nFROM contratos;"],
+["Mostre contrato_id, numero, vencimento e proximo_venc = LEAD(vencimento) por contrato, ordenado por numero.","SELECT contrato_id, numero, vencimento,\n  LEAD(vencimento) OVER (PARTITION BY contrato_id ORDER BY numero) AS proximo_venc\nFROM parcelas;"],
+["Mostre id, cliente_id, valor e acumulado = SUM(valor) OVER (PARTITION BY cliente_id ORDER BY data_contratacao), de contratos.","SELECT id, cliente_id, valor,\n  SUM(valor) OVER (PARTITION BY cliente_id ORDER BY data_contratacao) AS acumulado\nFROM contratos;"],
+["Mostre id, contrato_id, dias_atraso e max_contrato = MAX(dias_atraso) OVER (PARTITION BY contrato_id), de parcelas.","SELECT id, contrato_id, dias_atraso,\n  MAX(dias_atraso) OVER (PARTITION BY contrato_id) AS max_contrato\nFROM parcelas;"],
+["Mostre id, cliente_id e primeiro = FIRST_VALUE(valor) por cliente, ordenado por data_contratacao, de contratos.","SELECT id, cliente_id,\n  FIRST_VALUE(valor) OVER (PARTITION BY cliente_id ORDER BY data_contratacao) AS primeiro\nFROM contratos;"],
+["Mostre id, valor e variacao = valor - LAG(valor) OVER (ORDER BY data_contratacao), de contratos.","SELECT id, valor,\n  valor - LAG(valor) OVER (ORDER BY data_contratacao) AS variacao\nFROM contratos;"],
+["Divida os contratos em 4 grupos pelo valor, do maior para o menor: id, valor e quartil = NTILE(4) OVER (ORDER BY valor DESC).","SELECT id, valor, NTILE(4) OVER (ORDER BY valor DESC) AS quartil FROM contratos;"],
+["Mostre id, contrato_id e qtd_parcelas = COUNT(*) OVER (PARTITION BY contrato_id), de parcelas.","SELECT id, contrato_id,\n  COUNT(*) OVER (PARTITION BY contrato_id) AS qtd_parcelas\nFROM parcelas;"],
+["Mostre id, valor e pct = valor * 100.0 / SUM(valor) OVER (), o peso de cada contrato no total geral.","SELECT id, valor, valor * 100.0 / SUM(valor) OVER () AS pct FROM contratos;"],
+["Retorne a pior parcela de cada contrato: subconsulta t com todas as colunas de parcelas + ROW_NUMBER() OVER (PARTITION BY contrato_id ORDER BY dias_atraso DESC) apelido rn, e filtro rn = 1 no SELECT externo.","SELECT * FROM (\n  SELECT *, ROW_NUMBER() OVER (PARTITION BY contrato_id ORDER BY dias_atraso DESC) AS rn\n  FROM parcelas\n) t\nWHERE rn = 1;"]
+]}
+];
+var TOTAL=SECTIONS.reduce(function(a,S){return a+S.data.length},0);
+function norm(s){
+ s=s.toLowerCase().replace(/"/g,"'").replace(/\s+/g," ").trim().replace(/;+$/,"").trim();
+ s=s.replace(/\binner join\b/g,"join").replace(/\b(left|right|full) outer join\b/g,"$1 join").replace(/\s+asc\b/g,"");
+ s=s.replace(/\s*,\s*/g,", ").replace(/\s*(<=|>=|<>|!=|=|<|>)\s*/g," $1 ");
+ s=s.replace(/\s*\(\s*/g,"(").replace(/\s*\)\s*/g,")").replace(/\s*([*\/+])\s*/g,"$1").replace(/\s+/g," ").trim();
+ s=s.replace(/([\w.]+) = ([\w.]+)/g,function(m,a,b){return a<=b?a+" = "+b:b+" = "+a});
+ return s;
+}
+var done={},list=document.getElementById("list"),fl=document.getElementById("fl"),btns={};
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+SECTIONS.forEach(function(S){
+ var sec=el("section","lvl");sec.id="s-"+S.id;S.sec=sec;
+ sec.appendChild(el("h2",0,S.nome));sec.appendChild(el("p",0,S.desc));sec.appendChild(el("div","schema",S.schema));
+ S.data.forEach(function(e,i){
+  var alts=S.fmt==="old"?e[1]:[e[1]].concat(e[2]||[]),show=S.fmt==="old"?e[2]:e[1],key=S.id+i;
+  var d=el("div","ex"),h=el("h3"),n=el("span",0,(i+1)+".");h.appendChild(n);h.appendChild(document.createTextNode(e[0]));
+  var t=el("textarea");t.setAttribute("aria-label",S.nome+", exercício "+(i+1));t.spellcheck=false;t.placeholder="Escreva sua consulta SQL aqui";
+  var r=el("div","row"),b=el("button","chk","Verificar resposta"),g=el("button","sec","Ver resposta"),f=el("div","fb");f.setAttribute("role","status");
+  b.onclick=function(){
+   var v=norm(t.value);
+   if(!v){f.className="fb bad";f.textContent="Escreva uma consulta antes de verificar.";return}
+   if(alts.some(function(a){return norm(a)===v})){f.className="fb good";f.textContent="Correto! Boa.";done[key]=1;d.classList.add("ok")}
+   else{f.className="fb bad";f.textContent="Ainda não está certo. Confira tabelas, apelidos, colunas e condições.";delete done[key];d.classList.remove("ok")}
+   upd();
+  };
+  g.onclick=function(){f.className="fb info";f.textContent=show};
+  r.appendChild(b);r.appendChild(g);d.appendChild(h);d.appendChild(t);d.appendChild(r);d.appendChild(f);sec.appendChild(d);
+ });
+ list.appendChild(sec);
+});
+function mk(id,label){var b=el("button","",label);b.onclick=function(){setF(id)};fl.appendChild(b);btns[id]=b}
+mk("todos","Todos");SECTIONS.forEach(function(S){mk(S.id,S.nome)});
+function setF(id){
+ SECTIONS.forEach(function(S){S.sec.style.display=(id==="todos"||id===S.id)?"":"none"});
+ Object.keys(btns).forEach(function(k){btns[k].className=k===id?"on":""});
+ window.scrollTo(0,0);
+}
+function upd(){
+ var tot=Object.keys(done).length;
+ SECTIONS.forEach(function(S){var c=Object.keys(done).filter(function(k){return k.indexOf(S.id)===0}).length;btns[S.id].textContent=S.nome+" "+c+"/"+S.data.length});
+ document.getElementById("score").textContent=tot+" / "+TOTAL+" corretos";document.getElementById("pb").style.width=(tot/TOTAL*100)+"%";
+}
+document.getElementById("rs").onclick=function(){
+ done={};document.querySelectorAll(".ex").forEach(function(d){d.classList.remove("ok");d.querySelector("textarea").value="";d.querySelector(".fb").className="fb"});upd();window.scrollTo(0,0);
+};
+setF("todos");upd();
+</script>
+</body>
+</html>
